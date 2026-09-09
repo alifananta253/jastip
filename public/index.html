@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Jastip Vercel</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f6f9; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .tab { display: flex; margin-bottom: 15px; border-bottom: 2px solid #eee; }
+        .tab button { flex: 1; padding: 10px; background: none; border: none; font-weight: bold; cursor: pointer; color: #777; }
+        .tab button.active { border-bottom: 2px solid #007bff; color: #007bff; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button.submit { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button.submit:hover { background: #0056b3; }
+        .result { margin-top: 20px; background: #e9ecef; padding: 12px; border-radius: 4px; font-size: 14px; }
+        .hidden { display: none; }
+        .status-info { font-size: 11px; color: #28a745; margin-bottom: 10px; font-style: italic; background: #e8f5e9; padding: 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kalkulator Jastip Vercel</h2>
+    <div class="status-info">✅ Serverless Ready & Link Parser Aktif</div>
+    
+    <div class="tab">
+        <button id="btnManual" class="active" onclick="switchTab('manual')">Input Manual</button>
+        <button id="btnLink" onclick="switchTab('link')">Link Parser (Auto)</button>
+    </div>
+
+    <!-- Form Manual -->
+    <div id="sectionManual">
+        <div class="form-group">
+            <label>Harga Produk (Mata Uang Asing)</label>
+            <input type="number" id="manualPrice" placeholder="Contoh: 5000">
+        </div>
+        <div class="form-group">
+            <label>Pilih Mata Uang</label>
+            <select id="manualCurrency" onchange="updateDefaultRate()">
+                <option value="JPY">JPY (Yen Jepang)</option>
+                <option value="USD">USD (Dolar Amerika)</option>
+                <option value="SGD">SGD (Dolar Singapura)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Kurs Acuan ke IDR</label>
+            <input type="number" id="customRate" style="font-weight: bold; background-color: #fff;">
+        </div>
+    </div>
+
+    <!-- Form Link Parser -->
+    <div id="sectionLink" class="hidden">
+        <div class="form-group">
+            <label>Paste Link Produk (Amazon US / JP / SG)</label>
+            <input type="text" id="productLink" placeholder="https://www.amazon.com/dp/...">
+        </div>
+        <button type="button" onclick="fetchScrapedPrice()" style="background: #28a745; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px;">Ambil Harga Otomatis</button>
+    </div>
+
+    <!-- Shared Settings -->
+    <div class="form-group" style="margin-top: 15px;">
+        <label>Margin Keuntungan (%)</label>
+        <input type="number" id="profitMargin" value="15">
+    </div>
+    <div class="form-group">
+        <label>Biaya Jasa Titip Tetap (IDR)</label>
+        <input type="number" id="fixedFee" value="50000">
+    </div>
+
+    <button class="submit" onclick="calculateJastip()">Hitung Estimasi</button>
+
+    <div class="result" id="resultArea">
+        <strong>Hasil Estimasi:</strong>
+        <p id="outputDetail">Masukkan data di atas lalu klik hitung.</p>
+    </div>
+</div>
+
+<script>
+    const standardRates = { "JPY": 108, "USD": 16000, "SGD": 12100 };
+    let activeMode = 'manual';
+    let fetchedPrice = 0;
+    let fetchedCurrency = 'JPY';
+
+    function updateDefaultRate() {
+        let curr = document.getElementById('manualCurrency').value;
+        document.getElementById('customRate').value = standardRates[curr] || 1000;
+    }
+    updateDefaultRate();
+
+    function switchTab(mode) {
+        activeMode = mode;
+        if (mode === 'manual') {
+            document.getElementById('sectionManual').classList.remove('hidden');
+            document.getElementById('sectionLink').classList.add('hidden');
+            document.getElementById('btnManual').classList.add('active');
+            document.getElementById('btnLink').classList.remove('active');
+        } else {
+            document.getElementById('sectionManual').classList.add('hidden');
+            document.getElementById('sectionLink').classList.remove('hidden');
+            document.getElementById('btnLink').classList.add('active');
+            document.getElementById('btnManual').classList.remove('active');
+        }
+    }
+
+    async function fetchScrapedPrice() {
+        let url = document.getElementById('productLink').value;
+        if (!url) {
+            alert('Masukkan link produk terlebih dahulu!');
+            return;
+        }
+
+        alert('Sedang mengambil harga dari server... Mohon tunggu sebentar.');
+        try {
+            let response = await fetch('/api/parse-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            let data = await response.json();
+
+            if (data.success) {
+                fetchedPrice = data.price;
+                fetchedCurrency = data.currency;
+                alert(`Berhasil! Harga ditemukan: ${fetchedPrice} ${fetchedCurrency}`);
+            } else {
+                alert(data.error || 'Gagal mengambil harga.');
+            }
+        } catch (err) {
+            alert('Terjadi kesalahan koneksi ke server.');
+        }
+    }
+
+    function calculateJastip() {
+        let price = 0, currency = 'JPY';
+
+        if (activeMode === 'manual') {
+            price = parseFloat(document.getElementById('manualPrice').value) || 0;
+            currency = document.getElementById('manualCurrency').value;
+        } else {
+            price = fetchedPrice;
+            currency = fetchedCurrency;
+            if (price <= 0) {
+                alert('Silakan klik "Ambil Harga Otomatis" terlebih dahulu!');
+                return;
+            }
+        }
+
+        let rate = standardRates[currency] || 1000;
+        if(activeMode === 'manual') {
+            rate = parseFloat(document.getElementById('customRate').value) || rate;
+        }
+
+        let marginPercent = parseFloat(document.getElementById('profitMargin').value) || 0;
+        let fixedFee = parseFloat(document.getElementById('fixedFee').value) || 0;
+
+        let baseIDR = price * rate;
+        let profit = baseIDR * (marginPercent / 100);
+        let finalPrice = baseIDR + profit + fixedFee;
+
+        document.getElementById('outputDetail').innerHTML = `
+            Mata Uang Asal: <b>${price.toLocaleString()} ${currency}</b> <br>
+            Kurs Digunakan: 1 ${currency} = Rp ${rate.toLocaleString()} <br>
+            Konversi Murni: Rp ${baseIDR.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
+            Margin Keuntungan (${marginPercent}%): Rp ${profit.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
+            Biaya Jasa Titip: Rp ${fixedFee.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
+            <hr style="border:0; border-top:1px solid #ccc; margin:8px 0;">
+            <strong>Total Harga Akhir: Rp ${finalPrice.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong>
+        `;
+    }
+</script>
+
+</body>
+</html>
