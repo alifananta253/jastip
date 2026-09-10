@@ -82,28 +82,100 @@
 </div>
 
 <script>
-    // Kamus referensi nama negara & sebutan mata uang untuk melengkapi kode internasional
+    // Kamus lengkap referensi negara & mata uang dunia
     const countryNames = {
         "USD": "Amerika Serikat - Dolar",
         "JPY": "Jepang - Yen",
         "EUR": "Uni Eropa - Euro",
         "GBP": "Inggris - Poundsterling",
-        "SGD": "Singapura - Dolar",
-        "MYR": "Malaysia - Ringgit",
-        "THB": "Thailand - Baht",
-        "CNY": "Tiongkok - Yuan",
-        "KRW": "Korea Selatan - Won",
         "AUD": "Australia - Dolar",
         "CAD": "Kanada - Dolar",
+        "CHF": "Swiss - Franc",
+        "CNY": "Tiongkok - Yuan",
         "HKD": "Hong Kong - Dolar",
-        "TWD": "Taiwan - Dolar Baru",
+        "NZD": "Selandia Baru - Dolar",
+        "SGD": "Singapura - Dolar",
+        "SEK": "Swedia - Krona",
+        "KRW": "Korea Selatan - Won",
+        "MYR": "Malaysia - Ringgit",
+        "THB": "Thailand - Baht",
+        "IDR": "Indonesia - Rupiah",
         "INR": "India - Rupee",
         "PHP": "Filipina - Peso",
         "VND": "Vietnam - Dong",
+        "TWD": "Taiwan - Dolar Baru",
         "AED": "Uni Emirat Arab - Dirham",
         "SAR": "Arab Saudi - Riyal",
-        "NZD": "Selandia Baru - Dolar",
-        "CHF": "Swiss - Franc"
+        "QAR": "Qatar - Riyal",
+        "KWD": "Kuwait - Dinar",
+        "BHD": "Bahrain - Dinar",
+        "OMR": "Oman - Rial",
+        "BND": "Brunei Darussalam - Dolar",
+        "PKR": "Pakistan - Rupee",
+        "BDT": "Bangladesh - Taka",
+        "LKR": "Sri Lanka - Rupee",
+        "NPR": "Nepal - Rupee",
+        "MMK": "Myanmar - Kyat",
+        "KHR": "Kamboja - Riel",
+        "LAK": "Laos - Kip",
+        "MOP": "Makau - Pataca",
+        "MVR": "Maladewa - Rufiyaa",
+        "MNT": "Mongolia - Tugrik",
+        "KZT": "Kazakhstan - Tenge",
+        "UZS": "Uzbekistan - Som",
+        "AMD": "Armenia - Dram",
+        "AZN": "Azerbaijan - Manat",
+        "GEL": "Georgia - Lari",
+        "ILS": "Israel - Shekel",
+        "JOD": "Yordania - Dinar",
+        "LBP": "Lebanon - Pound",
+        "IQD": "Irak - Dinar",
+        "IRR": "Iran - Rial",
+        "YER": "Yaman - Rial",
+        "SYP": "Suriah - Pound",
+        "EGP": "Mesir - Pound",
+        "ZAR": "Afrika Selatan - Rand",
+        "NGN": "Nigeria - Naira",
+        "KES": "Kenya - Shilling",
+        "GHS": "Ghana - Cedi",
+        "ETB": "Etiopia - Birr",
+        "MAD": "Maroko - Dirham",
+        "TND": "Tunisia - Dinar",
+        "DZD": "Aljazair - Dinar",
+        "XOF": "Afrika Barat - Franc CFA",
+        "XAF": "Afrika Tengah - Franc CFA",
+        "BRL": "Brasil - Real",
+        "MXN": "Meksiko - Peso",
+        "ARS": "Argentina - Peso",
+        "CLP": "Cile - Peso",
+        "COP": "Kolombia - Peso",
+        "PEN": "Peru - Sol",
+        "UYU": "Uruguay - Peso",
+        "VES": "Venezuela - Bolívar",
+        "BOB": "Bolivia - Boliviano",
+        "CRC": "Kosta Rika - Colón",
+        "DOP": " Republik Dominika - Peso",
+        "GTQ": "Guatemala - Quetzal",
+        "HNL": "Honduras - Lempira",
+        "NIO": "Nikaragua - Cordoba",
+        "PAB": "Panama - Balboa",
+        "PYG": "Paraguay - Guarani",
+        "RUB": "Rusia - Rubel",
+        "UAH": "Ukraina - Hryvnia",
+        "BYN": "Belarus - Rubel",
+        "PLN": "Polandia - Zloty",
+        "CZK": "Ceko - Koruna",
+        "HUF": "Hungaria - Forint",
+        "RON": "Rumania - Leu",
+        "BGN": "Bulgaria - Lev",
+        "HRK": "Kroasia - Kuna",
+        "RSD": "Serbia - Dinar",
+        "BAM": "Bosnia - Mark",
+        "ALL": "Albania - Lek",
+        "ISK": "Islandia - Krona",
+        "NOK": "Norwegia - Krone",
+        "DKK": "Denmark - Krone",
+        "TRY": "Turki - Lira"
     };
 
     let globalRates = { "USD": 16000, "JPY": 108, "SGD": 12100 };
@@ -118,7 +190,7 @@
             if (data.success && data.rates) {
                 globalRates = data.rates;
                 populateCurrencyDropdown();
-                document.getElementById('apiStatus').innerText = "✅ Kurs real-time seluruh mata uang aktif!";
+                document.getElementById('apiStatus').innerText = "✅ Kurs real-time seluruh mata uang dunia aktif!";
             }
         } catch (err) {
             document.getElementById('apiStatus').innerText = "⚠️ Menggunakan kurs cadangan standar.";
@@ -130,13 +202,14 @@
         let select = document.getElementById('manualCurrency');
         select.innerHTML = '';
         
+        // Ambil seluruh mata uang yang tersedia dari API, urutkan alfabetis
         let sortedCurrencies = Object.keys(globalRates).sort();
         
         sortedCurrencies.forEach(curr => {
             let opt = document.createElement('option');
             opt.value = curr;
             
-            // Format tampilan: [Negara - Mata Uang] (KODE) = Rp X
+            // Cocokkan dengan kamus negara, jika tidak ada tampilkan nama kode internasionalnya
             let labelInfo = countryNames[curr] ? countryNames[curr] : `${curr} - Mata Uang Internasional`;
             opt.textContent = `${labelInfo} (${curr}) [Rp ${globalRates[curr].toLocaleString()}]`;
             
