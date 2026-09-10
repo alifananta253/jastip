@@ -3,9 +3,31 @@ const cheerio = require('cheerio');
 const cors = require('cors')({ origin: true });
 
 export default async function handler(req, res) {
-    // Jalankan middleware CORS
     return new Promise((resolve, reject) => {
         cors(req, res, async () => {
+            // Endpoint tambahan untuk mengambil kurs real-time semua mata uang ke IDR
+            if (req.method === 'GET' && req.query.action === 'rates') {
+                try {
+                    // Mengambil kurs global real-time (basis IDR) dari API publik gratis
+                    let currencyRes = await axios.get('https://open.er-api.com/v6/latest/IDR');
+                    if (currencyRes.data && currencyRes.data.rates) {
+                        let baseRates = currencyRes.data.rates;
+                        let convertedRates = {};
+                        
+                        // Membalik nilai agar menjadi (1 Mata Asing = X IDR) untuk seluruh mata uang dunia
+                        for (let curr in baseRates) {
+                            convertedRates[curr] = Math.round((1 / baseRates[curr]) * 1000) / 1000;
+                        }
+                        
+                        res.status(200).json({ success: true, rates: convertedRates });
+                        return resolve();
+                    }
+                } catch (err) {
+                    res.status(500).json({ error: 'Gagal memuat kurs real-time.' });
+                    return resolve();
+                }
+            }
+
             if (req.method !== 'POST') {
                 res.status(405).json({ error: 'Method not allowed' });
                 return resolve();
@@ -53,7 +75,6 @@ export default async function handler(req, res) {
                 return resolve();
 
             } catch (error) {
-                console.error('Error:', error.message);
                 res.status(500).json({ error: 'Gagal mengambil data dari link tersebut.' });
                 return resolve();
             }
