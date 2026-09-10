@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator Jastip Vercel</title>
+    <title>Kalkulator Jastip Profesional</title>
     <style>
         body { font-family: sans-serif; background: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -25,7 +25,7 @@
 
 <div class="container">
     <h2>Kalkulator Jastip Vercel</h2>
-    <div class="status-info">✅ Serverless Ready & Link Parser Aktif</div>
+    <div id="apiStatus" class="status-info">🔄 Memuat kurs real-time seluruh mata uang dunia...</div>
     
     <div class="tab">
         <button id="btnManual" class="active" onclick="switchTab('manual')">Input Manual</button>
@@ -39,16 +39,14 @@
             <input type="number" id="manualPrice" placeholder="Contoh: 5000">
         </div>
         <div class="form-group">
-            <label>Pilih Mata Uang</label>
+            <label>Pilih Mata Uang (Semua Mata Uang Dunia)</label>
             <select id="manualCurrency" onchange="updateDefaultRate()">
-                <option value="JPY">JPY (Yen Jepang)</option>
-                <option value="USD">USD (Dolar Amerika)</option>
-                <option value="SGD">SGD (Dolar Singapura)</option>
+                <!-- Akan terisi otomatis secara dinamis dari API real-time -->
             </select>
         </div>
         <div class="form-group">
-            <label>Kurs Acuan ke IDR</label>
-            <input type="number" id="customRate" style="font-weight: bold; background-color: #fff;">
+            <label>Kurs Acuan ke IDR (Real-time / Bisa diedit manual)</label>
+            <input type="number" id="customRate" step="any" style="font-weight: bold; background-color: #fff;">
         </div>
     </div>
 
@@ -84,16 +82,50 @@
 </div>
 
 <script>
-    const standardRates = { "JPY": 108, "USD": 16000, "SGD": 12100 };
+    let globalRates = { "USD": 16000, "JPY": 108, "SGD": 12100 };
     let activeMode = 'manual';
     let fetchedPrice = 0;
-    let fetchedCurrency = 'JPY';
+    let fetchedCurrency = 'USD';
+
+    // Ambil kurs real-time dari backend Vercel saat halaman dibuka
+    async function loadRealtimeRates() {
+        try {
+            let response = await fetch('/api/parse-link?action=rates');
+            let data = await response.json();
+            if (data.success && data.rates) {
+                globalRates = data.rates;
+                populateCurrencyDropdown();
+                document.getElementById('apiStatus').innerText = "✅ Kurs real-time seluruh mata uang aktif!";
+            }
+        } catch (err) {
+            document.getElementById('apiStatus').innerText = "⚠️ Menggunakan kurs cadangan standar.";
+            populateCurrencyDropdown();
+        }
+    }
+
+    function populateCurrencyDropdown() {
+        let select = document.getElementById('manualCurrency');
+        select.innerHTML = '';
+        
+        // Urutkan mata uang secara alfabetis
+        let sortedCurrencies = Object.keys(globalRates).sort();
+        
+        sortedCurrencies.forEach(curr => {
+            let opt = document.createElement('option');
+            opt.value = curr;
+            opt.textContent = `${curr} (1 ${curr} = Rp ${globalRates[curr].toLocaleString()})`;
+            if (curr === 'USD') opt.selected = true; // Default ke USD
+            select.appendChild(opt);
+        });
+        updateDefaultRate();
+    }
 
     function updateDefaultRate() {
         let curr = document.getElementById('manualCurrency').value;
-        document.getElementById('customRate').value = standardRates[curr] || 1000;
+        document.getElementById('customRate').value = globalRates[curr] || 1000;
     }
-    updateDefaultRate();
+
+    loadRealtimeRates();
 
     function switchTab(mode) {
         activeMode = mode;
@@ -139,7 +171,7 @@
     }
 
     function calculateJastip() {
-        let price = 0, currency = 'JPY';
+        let price = 0, currency = 'USD';
 
         if (activeMode === 'manual') {
             price = parseFloat(document.getElementById('manualPrice').value) || 0;
@@ -153,8 +185,8 @@
             }
         }
 
-        let rate = standardRates[currency] || 1000;
-        if(activeMode === 'manual') {
+        let rate = globalRates[currency] || 1000;
+        if (activeMode === 'manual') {
             rate = parseFloat(document.getElementById('customRate').value) || rate;
         }
 
@@ -167,7 +199,7 @@
 
         document.getElementById('outputDetail').innerHTML = `
             Mata Uang Asal: <b>${price.toLocaleString()} ${currency}</b> <br>
-            Kurs Digunakan: 1 ${currency} = Rp ${rate.toLocaleString()} <br>
+            Kurs Real-Time: 1 ${currency} = Rp ${rate.toLocaleString()} <br>
             Konversi Murni: Rp ${baseIDR.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
             Margin Keuntungan (${marginPercent}%): Rp ${profit.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
             Biaya Jasa Titip: Rp ${fixedFee.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
