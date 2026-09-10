@@ -5,20 +5,15 @@ const cors = require('cors')({ origin: true });
 export default async function handler(req, res) {
     return new Promise((resolve, reject) => {
         cors(req, res, async () => {
-            // Endpoint tambahan untuk mengambil kurs real-time semua mata uang ke IDR
             if (req.method === 'GET' && req.query.action === 'rates') {
                 try {
-                    // Mengambil kurs global real-time (basis IDR) dari API publik gratis
                     let currencyRes = await axios.get('https://open.er-api.com/v6/latest/IDR');
                     if (currencyRes.data && currencyRes.data.rates) {
                         let baseRates = currencyRes.data.rates;
                         let convertedRates = {};
-                        
-                        // Membalik nilai agar menjadi (1 Mata Asing = X IDR) untuk seluruh mata uang dunia
                         for (let curr in baseRates) {
                             convertedRates[curr] = Math.round((1 / baseRates[curr]) * 1000) / 1000;
                         }
-                        
                         res.status(200).json({ success: true, rates: convertedRates });
                         return resolve();
                     }
@@ -42,8 +37,9 @@ export default async function handler(req, res) {
             try {
                 const response = await axios.get(url, {
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept-Language': 'en-US,en;q=0.9'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
                     }
                 });
 
@@ -51,19 +47,25 @@ export default async function handler(req, res) {
                 let price = 0;
                 let currency = 'USD';
 
-                if (url.includes('amazon.co.jp')) {
+                // Mengambil teks harga tersembunyi yang akurat dari Amazon (.a-offscreen biasanya berisi nilai bersih misal "$19.99")
+                let rawPriceText = '';
+                if ($('.a-price .a-offscreen').length > 0) {
+                    rawPriceText = $('.a-price .a-offscreen').first().text();
+                } else if ($('#priceblock_ourprice').length > 0) {
+                    rawPriceText = $('#priceblock_ourprice').text();
+                }
+
+                // Membersihkan string harga (mengambil angka dan titik saja, misal "$19.99" jadi "19.99")
+                let cleanNumber = rawPriceText.replace(/[^0-9.]/g, '');
+                price = parseFloat(cleanNumber) || 0;
+
+                // Deteksi Mata Uang berdasarkan Domain atau Simbol
+                if (url.includes('amazon.co.jp') || rawPriceText.includes('JPY') || rawPriceText.includes('¥')) {
                     currency = 'JPY';
-                    let rawPrice = $('.a-price-whole').first().text().replace(/,/g, '');
-                    price = parseFloat(rawPrice) || 0;
-                } else if (url.includes('amazon.sg')) {
+                } else if (url.includes('amazon.sg') || rawPriceText.includes('S$')) {
                     currency = 'SGD';
-                    let rawPrice = $('.a-price-whole').first().text().replace(/,/g, '');
-                    price = parseFloat(rawPrice) || 0;
-                } else if (url.includes('amazon.com')) {
+                } else {
                     currency = 'USD';
-                    let rawPrice = $('.a-price-whole').first().text().replace(/,/g, '');
-                    let fraction = $('.a-price-fraction').first().text() || '00';
-                    price = parseFloat(`${rawPrice}.${fraction}`) || 0;
                 }
 
                 if (price <= 0) {
