@@ -39,9 +39,9 @@
             <input type="number" id="manualPrice" placeholder="Contoh: 5000">
         </div>
         <div class="form-group">
-            <label>Pilih Mata Uang (Semua Mata Uang Dunia)</label>
+            <label>Pilih Mata Uang & Negara</label>
             <select id="manualCurrency" onchange="updateDefaultRate()">
-                <!-- Akan terisi otomatis secara dinamis dari API real-time -->
+                <!-- Terisi otomatis lengkap dengan nama negara -->
             </select>
         </div>
         <div class="form-group">
@@ -82,12 +82,35 @@
 </div>
 
 <script>
+    // Kamus referensi nama negara & sebutan mata uang untuk melengkapi kode internasional
+    const countryNames = {
+        "USD": "Amerika Serikat - Dolar",
+        "JPY": "Jepang - Yen",
+        "EUR": "Uni Eropa - Euro",
+        "GBP": "Inggris - Poundsterling",
+        "SGD": "Singapura - Dolar",
+        "MYR": "Malaysia - Ringgit",
+        "THB": "Thailand - Baht",
+        "CNY": "Tiongkok - Yuan",
+        "KRW": "Korea Selatan - Won",
+        "AUD": "Australia - Dolar",
+        "CAD": "Kanada - Dolar",
+        "HKD": "Hong Kong - Dolar",
+        "TWD": "Taiwan - Dolar Baru",
+        "INR": "India - Rupee",
+        "PHP": "Filipina - Peso",
+        "VND": "Vietnam - Dong",
+        "AED": "Uni Emirat Arab - Dirham",
+        "SAR": "Arab Saudi - Riyal",
+        "NZD": "Selandia Baru - Dolar",
+        "CHF": "Swiss - Franc"
+    };
+
     let globalRates = { "USD": 16000, "JPY": 108, "SGD": 12100 };
     let activeMode = 'manual';
     let fetchedPrice = 0;
     let fetchedCurrency = 'USD';
 
-    // Ambil kurs real-time dari backend Vercel saat halaman dibuka
     async function loadRealtimeRates() {
         try {
             let response = await fetch('/api/parse-link?action=rates');
@@ -107,14 +130,17 @@
         let select = document.getElementById('manualCurrency');
         select.innerHTML = '';
         
-        // Urutkan mata uang secara alfabetis
         let sortedCurrencies = Object.keys(globalRates).sort();
         
         sortedCurrencies.forEach(curr => {
             let opt = document.createElement('option');
             opt.value = curr;
-            opt.textContent = `${curr} (1 ${curr} = Rp ${globalRates[curr].toLocaleString()})`;
-            if (curr === 'USD') opt.selected = true; // Default ke USD
+            
+            // Format tampilan: [Negara - Mata Uang] (KODE) = Rp X
+            let labelInfo = countryNames[curr] ? countryNames[curr] : `${curr} - Mata Uang Internasional`;
+            opt.textContent = `${labelInfo} (${curr}) [Rp ${globalRates[curr].toLocaleString()}]`;
+            
+            if (curr === 'USD') opt.selected = true;
             select.appendChild(opt);
         });
         updateDefaultRate();
@@ -199,7 +225,7 @@
 
         document.getElementById('outputDetail').innerHTML = `
             Mata Uang Asal: <b>${price.toLocaleString()} ${currency}</b> <br>
-            Kurs Real-Time: 1 ${currency} = Rp ${rate.toLocaleString()} <br>
+            Kurs Digunakan: 1 ${currency} = Rp ${rate.toLocaleString()} <br>
             Konversi Murni: Rp ${baseIDR.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
             Margin Keuntungan (${marginPercent}%): Rp ${profit.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
             Biaya Jasa Titip: Rp ${fixedFee.toLocaleString(undefined, {maximumFractionDigits: 0})} <br>
