@@ -7,27 +7,30 @@ export default async function handler(req, res) {
         cors(req, res, async () => {
             if (req.method === 'GET' && req.query.action === 'rates') {
                 try {
-                    // Mengambil data kurs dengan basis USD agar presisi tinggi
                     let currencyRes = await axios.get('https://open.er-api.com/v6/latest/USD');
                     if (currencyRes.data && currencyRes.data.rates) {
                         let ratesFromUSD = currencyRes.data.rates;
                         let idrRatePerUSD = ratesFromUSD.IDR || 17688;
                         let convertedRates = {};
                         
-                        // Menghitung kurs silang mata uang asing ke IDR berdasarkan basis USD
                         for (let curr in ratesFromUSD) {
                             if (curr === 'USD') {
                                 convertedRates['USD'] = Math.round(idrRatePerUSD * 1000) / 1000;
                             } else {
                                 let rateToIDR = idrRatePerUSD / ratesFromUSD[curr];
+                                convertedRates['IDR'] = 1; // aman
                                 convertedRates[curr] = Math.round(rateToIDR * 1000) / 1000;
                             }
                         }
-                        
-                        // Memastikan IDR bernilai tetap 1 ke 1
                         convertedRates['IDR'] = 1;
 
-                        res.status(200).json({ success: true, rates: convertedRates });
+                        // Mengirim data rates beserta info waktu update dari API
+                        res.status(200).json({ 
+                            success: true, 
+                            rates: convertedRates,
+                            time_last_update_utc: currencyRes.data.time_last_update_utc,
+                            time_next_update_utc: currencyRes.data.time_next_update_utc
+                        });
                         return resolve();
                     }
                 } catch (err) {
